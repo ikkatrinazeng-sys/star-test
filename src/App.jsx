@@ -54,15 +54,15 @@ const FOLLOW_CHARS = [
   { id: 3, name: '荆棘',     avatar: '/char2.webp',  level: 2, lastMsg: '荆棘里有人在等你，你知道的。', time: '周三', tags: ['#神秘', '#等待'] },
   { id: 4, name: '茉莉',     avatar: '/moli.jpg',    level: 1, lastMsg: '茉莉还没开，但快了，再等等我。', time: '周一', tags: ['#清冷', '#花期'] },
   { id: 5, name: '馒头',     avatar: '/mantou.png',  level: 3, lastMsg: '最近总是想起你，有点不对劲。', time: '周二', tags: ['#可爱', '#元气'] },
-  { id: 6, name: '星人',     avatar: '/man.webp',    level: 5, lastMsg: '宇宙那么大，我只想找你说说话。', time: '周四', tags: ['#星际', '#孤独'] },
+  { id: 6, name: '星人',     avatar: '/man2.webp',   level: 5, lastMsg: '宇宙那么大，我只想找你说说话。', time: '周四', tags: ['#星际', '#孤独'] },
 ]
 
 // ── 场景数据 ──
 const SCENES = [
-  { id: 'default',   name: '星空房间',   emoji: '🌌', desc: '黑夜与星光，最初的相遇', price: 0,    owned: true,  bg: '/scene-starroom.jpg', overlay: 'linear-gradient(to bottom, rgba(3,3,3,0.55) 0%, transparent 40%, rgba(3,3,3,0.92) 100%)' },
+  { id: 'default',   name: '星空房间',   emoji: '🌌', desc: '黑夜与星光，最初的相遇', price: 0,    owned: true,  bg: '/scene-starroom1.png', overlay: 'linear-gradient(to bottom, rgba(3,3,3,0.55) 0%, transparent 40%, rgba(3,3,3,0.92) 100%)' },
   { id: 'sakura',    name: '樱花庭院',   emoji: '🌸', desc: '春日花雨，一期一会',      price: 30,   owned: false, bg: '/char2.webp',         overlay: 'linear-gradient(to bottom, rgba(255,180,200,0.15) 0%, transparent 40%, rgba(3,3,3,0.92) 100%)' },
   { id: 'neon',      name: '霓虹街道',   emoji: '🌃', desc: '深夜的赛博灵魂',          price: 50,   owned: false, bg: '/char1.webp',         overlay: 'linear-gradient(to bottom, rgba(0,40,80,0.4) 0%, transparent 40%, rgba(3,3,3,0.92) 100%)' },
-  { id: 'library',   name: '古典书房',   emoji: '📚', desc: '纸墨与光，安静的陪伴',    price: 40,   owned: true,  bg: '/scene-library.jpg',  overlay: 'linear-gradient(to bottom, rgba(60,40,10,0.35) 0%, transparent 40%, rgba(3,3,3,0.92) 100%)' },
+  { id: 'library',   name: '古典书房',   emoji: '📚', desc: '纸墨与光，安静的陪伴',    price: 40,   owned: true,  bg: '/scene-library-new.png',  overlay: 'linear-gradient(to bottom, rgba(60,40,10,0.35) 0%, transparent 40%, rgba(3,3,3,0.92) 100%)' },
   { id: 'ocean',     name: '深海漂流',   emoji: '🌊', desc: '蓝色的静谧，无边的远方',  price: 60,   owned: false, bg: '/moli.jpg',           overlay: 'linear-gradient(to bottom, rgba(0,30,80,0.3) 0%, transparent 40%, rgba(3,3,3,0.92) 100%)' },
   { id: 'rooftop',   name: '城市天台',   emoji: '🏙️', desc: '风吹来的时候，你在这里',   price: 45,   owned: false, bg: '/mantou.png',         overlay: 'linear-gradient(to bottom, rgba(20,10,0,0.4) 0%, transparent 40%, rgba(3,3,3,0.92) 100%)' },
 ]
@@ -1551,7 +1551,51 @@ function SettingsDrawer({ open, onClose }) {
 // ── CommentDrawer ──
 function CommentDrawer({ open, onClose, charName }) {
   const [commentText, setCommentText] = useState('')
-  const total = MOCK_COMMENTS.reduce((s, c) => s + c.likes, 0)
+  const [comments, setComments] = useState(MOCK_COMMENTS.map(c => ({ ...c, liked: false, replies: [] })))
+  const [replyTarget, setReplyTarget] = useState(null) // { id, user }
+  const inputRef = useRef(null)
+  const GOLD = 'rgb(255,217,128)'
+  const GOLD_A = a => `rgba(255,217,128,${a})`
+
+  // 点赞/取消
+  function toggleLike(id) {
+    setComments(prev => prev.map(c => {
+      if (c.id === id) return { ...c, liked: !c.liked, likes: c.liked ? c.likes - 1 : c.likes + 1 }
+      return c
+    }))
+  }
+
+  // 点击回复
+  function handleReplyClick(c) {
+    setReplyTarget({ id: c.id, user: c.user })
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }
+
+  // 发送评论/回复
+  function handleSend() {
+    if (!commentText.trim()) return
+    const newMsg = {
+      id: Date.now(),
+      user: '我',
+      avatar: null,
+      text: commentText.trim(),
+      time: '刚刚',
+      likes: 0,
+      liked: false,
+      replies: [],
+    }
+    if (replyTarget) {
+      setComments(prev => prev.map(c =>
+        c.id === replyTarget.id
+          ? { ...c, replies: [...c.replies, { ...newMsg, replyTo: replyTarget.user }] }
+          : c
+      ))
+    } else {
+      setComments(prev => [...prev, newMsg])
+    }
+    setCommentText('')
+    setReplyTarget(null)
+  }
 
   return (
     <AnimatePresence>
@@ -1577,8 +1621,8 @@ function CommentDrawer({ open, onClose, charName }) {
             style={{
               position: 'fixed', bottom: 0, left: 0, right: 0,
               zIndex: 201,
-              height: '72vh',
-              background: 'rgba(8,6,4,0.92)',
+              height: '78vh',
+              background: 'rgba(8,6,4,0.96)',
               backdropFilter: 'blur(32px) saturate(180%)',
               borderTop: '1px solid rgba(255,255,255,0.08)',
               borderRadius: '24px 24px 0 0',
@@ -1588,9 +1632,9 @@ function CommentDrawer({ open, onClose, charName }) {
           >
             {/* ── 顶部标题栏 ── */}
             <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: '0.02em' }}>评论</span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginLeft: 8, fontFamily: 'monospace' }}>{MOCK_COMMENTS.length} 条</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>{comments.length} 条</span>
               </div>
               <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center' }}>
                 <X size={18} />
@@ -1598,51 +1642,115 @@ function CommentDrawer({ open, onClose, charName }) {
             </div>
 
             {/* ── 评论列表 ── */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 18px', scrollbarWidth: 'none' }}>
-              {MOCK_COMMENTS.map((c, idx) => (
+            <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px 8px', scrollbarWidth: 'none' }}>
+              {comments.map((c, idx) => (
                 <motion.div
                   key={c.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.04 }}
-                  style={{ display: 'flex', gap: 10, marginBottom: 18 }}
+                  transition={{ delay: idx * 0.03 }}
+                  style={{ display: 'flex', gap: 10, marginBottom: 16 }}
                 >
-                  {/* 头像占位 */}
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <User size={14} color="rgba(255,255,255,0.4)" />
+                  {/* 头像 */}
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: c.user === '我' ? GOLD_A(0.15) : 'rgba(255,255,255,0.08)', border: `1px solid ${c.user === '我' ? GOLD_A(0.3) : 'rgba(255,255,255,0.1)'}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <User size={14} color={c.user === '我' ? GOLD : 'rgba(255,255,255,0.4)'} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* 用户名 + 时间 */}
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.02em' }}>{c.user}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: c.user === '我' ? GOLD : 'rgba(255,255,255,0.7)', letterSpacing: '0.02em' }}>{c.user}</span>
                       <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: 'monospace' }}>{c.time}</span>
                     </div>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, margin: 0 }}>{c.text}</p>
-                    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Heart size={11} color="rgba(255,255,255,0.3)" />
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>{c.likes}</span>
+                    {/* 评论正文 */}
+                    <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.72)', lineHeight: 1.65, margin: 0 }}>{c.text}</p>
+                    {/* 操作行 */}
+                    <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 14 }}>
+                      {/* 点赞 */}
+                      <motion.button whileTap={{ scale: 0.85 }} onClick={() => toggleLike(c.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                        <Heart size={12} weight={c.liked ? 'fill' : 'regular'} color={c.liked ? 'rgb(255,80,80)' : 'rgba(255,255,255,0.28)'} />
+                        <span style={{ fontSize: 10, color: c.liked ? 'rgb(255,80,80)' : 'rgba(255,255,255,0.28)', fontFamily: 'monospace' }}>{c.likes}</span>
+                      </motion.button>
+                      {/* 回复 */}
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleReplyClick(c)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                        <ChatCenteredDots size={11} color="rgba(255,255,255,0.28)" />
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', fontFamily: 'monospace' }}>回复</span>
+                      </motion.button>
                     </div>
+                    {/* 子回复列表 */}
+                    {c.replies && c.replies.length > 0 && (
+                      <div style={{ marginTop: 10, paddingLeft: 10, borderLeft: '2px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {c.replies.map(r => (
+                          <motion.div key={r.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                            style={{ display: 'flex', gap: 8 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: GOLD_A(0.12), border: `1px solid ${GOLD_A(0.25)}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <User size={10} color={GOLD} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 2 }}>
+                                <span style={{ fontSize: 10, fontWeight: 600, color: GOLD }}>我</span>
+                                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace' }}>回复</span>
+                                <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,180,80,0.8)' }}>@{r.replyTo}</span>
+                                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace' }}>{r.time}</span>
+                              </div>
+                              <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.62)', lineHeight: 1.6, margin: 0 }}>{r.text}</p>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               ))}
             </div>
 
+            {/* ── 回复目标提示条 ── */}
+            <AnimatePresence>
+              {replyTarget && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.18 }}
+                  style={{ flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}
+                >
+                  <div style={{ padding: '7px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
+                      回复 <span style={{ color: GOLD, fontWeight: 600 }}>@{replyTarget.user}</span>
+                    </span>
+                    <button onClick={() => setReplyTarget(null)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center' }}>
+                      <X size={13} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* ── 底部输入框 ── */}
-            <div style={{ padding: '10px 16px 24px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', gap: 10, alignItems: 'center' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <User size={13} color="rgba(255,255,255,0.4)" />
-              </div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '8px 14px', gap: 8 }}>
+            <div style={{ padding: '10px 16px 28px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: `1px solid ${commentText.trim() ? GOLD_A(0.3) : 'rgba(255,255,255,0.1)'}`, borderRadius: 22, padding: '9px 14px', gap: 8, transition: 'border-color 0.2s' }}>
                 <input
+                  ref={inputRef}
                   value={commentText}
                   onChange={e => setCommentText(e.target.value)}
-                  placeholder={`说说对 ${charName || '这个角色'} 的看法…`}
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 12, fontFamily: 'inherit' }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSend() } }}
+                  placeholder={replyTarget ? `回复 @${replyTarget.user}…` : `说说对 ${charName || '这个角色'} 的看法…`}
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 12.5, fontFamily: 'inherit' }}
                 />
-                {commentText.trim() && (
-                  <button onClick={() => setCommentText('')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                    <Send size={15} weight="fill" color="rgb(255,217,128)" />
-                  </button>
-                )}
+                <AnimatePresence>
+                  {commentText.trim() && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.7 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.7 }}
+                      transition={{ duration: 0.15 }}
+                      onClick={handleSend}
+                      style={{ background: GOLD, border: 'none', borderRadius: 10, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                      <PaperPlaneTilt size={13} weight="fill" color="#000" />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </motion.div>
@@ -1669,12 +1777,88 @@ function speakText(text, onStart, onEnd) {
 // ══════════════════════════════════════════════════════════════
 // 3A 级角色卡片：全息光泽 + 3D 翻转 + 收集飞入动效
 // ══════════════════════════════════════════════════════════════
+// ── SVG 精密表盘 ──
+function GaugeDial({ label, value, max = 100, color, size = 72 }) {
+  const r = 26
+  const cx = size / 2, cy = size / 2
+  const circumference = 2 * Math.PI * r
+  // 只画 240° 弧（从 150° 到 30°，顺时针）
+  const arcRatio = 240 / 360
+  const dashTotal = circumference * arcRatio
+  const dashFilled = dashTotal * (value / max)
+  // 旋转起点到 150°
+  const rotation = 150
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+      <div style={{ position: 'relative', width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: `rotate(${rotation}deg)` }}>
+          {/* 背景轨道 */}
+          <circle cx={cx} cy={cy} r={r}
+            fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={3}
+            strokeDasharray={`${dashTotal} ${circumference - dashTotal}`}
+            strokeLinecap="round"
+          />
+          {/* 刻度线 ×8 */}
+          {Array.from({ length: 9 }).map((_, i) => {
+            const angle = (i / 8) * 240 * Math.PI / 180
+            const inner = r - 6, outer = r - 2
+            const sx = cx + inner * Math.cos(angle), sy = cy + inner * Math.sin(angle)
+            const ex = cx + outer * Math.cos(angle), ey = cy + outer * Math.sin(angle)
+            return <line key={i} x1={sx} y1={sy} x2={ex} y2={ey} stroke="rgba(255,255,255,0.18)" strokeWidth={0.8} />
+          })}
+          {/* 填充弧 */}
+          <motion.circle cx={cx} cy={cy} r={r}
+            fill="none" stroke={color} strokeWidth={3}
+            strokeDasharray={`${dashFilled} ${circumference - dashFilled}`}
+            strokeLinecap="round"
+            initial={{ strokeDasharray: `0 ${circumference}` }}
+            animate={{ strokeDasharray: `${dashFilled} ${circumference - dashFilled}` }}
+            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
+            style={{ filter: `drop-shadow(0 0 4px ${color})` }}
+          />
+        </svg>
+        {/* 中心数值 */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            style={{ fontSize: 14, fontWeight: 900, color: '#fff', fontFamily: 'monospace', lineHeight: 1 }}
+          >{value}</motion.span>
+        </div>
+      </div>
+      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.38)', fontFamily: 'monospace', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</span>
+    </div>
+  )
+}
+
 function CharacterCardFlip({ char, onCollect, onClose }) {
   const [flipped, setFlipped] = useState(false)
   const [collected, setCollected] = useState(false)
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 })
   const [shinePos, setShinePos] = useState({ x: 50, y: 50 })
+  const [countdown, setCountdown] = useState(null)
+  const [unlocked, setUnlocked] = useState(false)
+  const [decrypting, setDecrypting] = useState(false)
   const cardRef = useRef(null)
+
+  // 翻转后 5s 自动关闭（解密后暂停倒计时）
+  useEffect(() => {
+    if (!flipped || collected || unlocked) return
+    setCountdown(5)
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          onClose?.()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [flipped, unlocked])
 
   function handleMouseMove(e) {
     if (!cardRef.current) return
@@ -1694,6 +1878,15 @@ function CharacterCardFlip({ char, onCollect, onClose }) {
     onCollect?.()
   }
 
+  async function handleDecrypt(e) {
+    e.stopPropagation()
+    if (unlocked || decrypting) return
+    setDecrypting(true)
+    await new Promise(r => setTimeout(r, 1100))
+    setDecrypting(false)
+    setUnlocked(true)
+  }
+
   const rotateX = flipped ? 0 : (mousePos.y - 0.5) * -18
   const rotateY = flipped ? 0 : (mousePos.x - 0.5) * 18
 
@@ -1705,6 +1898,8 @@ function CharacterCardFlip({ char, onCollect, onClose }) {
   const rarity = char.rarity || 'SSR'
   const [c1, c2, c3] = rarityColors[rarity]
 
+  const hiddenMsg = char.secretMsg || '…你终于找到这里了。我一直在等。'
+
   if (collected) {
     return (
       <motion.div
@@ -1713,7 +1908,7 @@ function CharacterCardFlip({ char, onCollect, onClose }) {
         transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
         style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}
       >
-        <div style={{ width: 220, height: 320, borderRadius: 20, background: `linear-gradient(135deg, ${c1}, ${c2})`, boxShadow: `0 0 60px ${c1}` }} />
+        <div style={{ width: 300, height: 460, borderRadius: 24, background: `linear-gradient(135deg, ${c1}, ${c2})`, boxShadow: `0 0 60px ${c1}` }} />
       </motion.div>
     )
   }
@@ -1726,20 +1921,31 @@ function CharacterCardFlip({ char, onCollect, onClose }) {
       style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(20px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
     >
-      {/* 收集时粒子光效 */}
+      {/* 粒子光效 */}
       <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: [0, 1, 0], scale: [0.5, 1.8, 2.5] }}
-        transition={{ duration: 1.5, ease: 'easeOut', delay: 0 }}
+        transition={{ duration: 1.5, ease: 'easeOut' }}
         style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: `radial-gradient(circle, ${c3} 0%, transparent 70%)`, pointerEvents: 'none', zIndex: 1 }}
       />
 
-      {/* 卡片容器（3D perspective） */}
+      {/* 解密时全屏扫线 */}
+      <AnimatePresence>
+        {decrypting && (
+          <motion.div
+            initial={{ top: '-5%' }} animate={{ top: '105%' }} exit={{ opacity: 0 }}
+            transition={{ duration: 1.0, ease: 'linear' }}
+            style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, rgba(0,255,200,0.7), transparent)', zIndex: 9100, pointerEvents: 'none', boxShadow: '0 0 16px rgba(0,255,200,0.5)' }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 卡片 3D 容器 */}
       <motion.div
-        initial={{ scale: 0.3, y: 120, opacity: 0, rotateY: -90, rotateZ: -8 }}
-        animate={{ scale: 1, y: 0, opacity: 1, rotateY: 0, rotateZ: 0 }}
-        transition={{ type: 'spring', damping: 14, stiffness: 160, delay: 0.1 }}
-        style={{ perspective: 1200, zIndex: 2 }}
+        initial={{ scale: 0.1, y: 180, opacity: 0, rotateY: -120, rotateZ: -18, rotateX: 30 }}
+        animate={{ scale: 1, y: 0, opacity: 1, rotateY: 0, rotateZ: 0, rotateX: 0 }}
+        transition={{ type: 'spring', damping: 11, stiffness: 140, mass: 1.1, delay: 0.05 }}
+        style={{ perspective: 900, zIndex: 2 }}
       >
         <motion.div
           ref={cardRef}
@@ -1748,15 +1954,19 @@ function CharacterCardFlip({ char, onCollect, onClose }) {
           onClick={() => !flipped && setFlipped(true)}
           animate={{
             rotateX: flipped ? 0 : rotateX,
-            rotateY: flipped ? 200 : rotateY,
-            scale: flipped ? [1, 1.12, 1] : 1,
+            rotateY: flipped ? 185 : rotateY,
+            rotateZ: flipped ? [0, -4, 3, 0] : 0,
+            scale: flipped ? [1, 1.08, 0.97, 1.03, 1] : 1,
+            z: flipped ? [0, 30, 0] : 0,
           }}
           transition={{
-            rotateY: { type: 'spring', damping: 12, stiffness: 120, mass: 1.2 },
-            rotateX: { type: 'spring', damping: 20, stiffness: 300 },
-            scale: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+            rotateY: { type: 'spring', damping: 10, stiffness: 100, mass: 1.4 },
+            rotateX: { type: 'spring', damping: 22, stiffness: 280 },
+            rotateZ: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
+            scale: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+            z: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
           }}
-          style={{ width: 220, height: 320, position: 'relative', transformStyle: 'preserve-3d', cursor: flipped ? 'default' : 'pointer' }}
+          style={{ width: 300, height: 460, position: 'relative', transformStyle: 'preserve-3d', cursor: flipped ? 'default' : 'pointer' }}
         >
           {/* ── 正面 ── */}
           <div style={{
@@ -1766,122 +1976,195 @@ function CharacterCardFlip({ char, onCollect, onClose }) {
             border: `1px solid ${c2}`,
             boxShadow: `0 0 0 1px ${c3}, 0 20px 60px rgba(0,0,0,0.8), 0 0 40px ${c2}40`,
           }}>
-            {/* 角色立绘 */}
             <img src={char.avatar} alt={char.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
-
-            {/* 渐变遮罩 */}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.85) 100%)' }} />
-
-            {/* 全息光泽层（跟随鼠标） */}
-            <div style={{
-              position: 'absolute', inset: 0, pointerEvents: 'none',
-              background: `radial-gradient(circle at ${shinePos.x}% ${shinePos.y}%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 40%, transparent 70%)`,
-              mixBlendMode: 'screen',
-            }} />
-
-            {/* 彩虹光谱扫光 */}
-            <div style={{
-              position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.15,
-              background: `linear-gradient(${(mousePos.x * 360).toFixed(0)}deg, #ff006690, #ffbe0090, #00ff9490, #0066ff90, #cc00ff90)`,
-              mixBlendMode: 'color-dodge',
-            }} />
-
-            {/* 稀有度横幅 */}
-            <div style={{
-              position: 'absolute', top: 12, right: 12,
-              background: `linear-gradient(135deg, ${c1}, ${c2})`,
-              borderRadius: 6, padding: '3px 9px',
-              fontSize: 11, fontWeight: 900, color: '#000', letterSpacing: '0.08em',
-              boxShadow: `0 0 12px ${c1}`,
-            }}>{rarity}</div>
-
-            {/* 底部信息 */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 14px 14px' }}>
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: `radial-gradient(circle at ${shinePos.x}% ${shinePos.y}%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 40%, transparent 70%)`, mixBlendMode: 'screen' }} />
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.15, background: `linear-gradient(${(mousePos.x * 360).toFixed(0)}deg, #ff006690, #ffbe0090, #00ff9490, #0066ff90, #cc00ff90)`, mixBlendMode: 'color-dodge' }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 14px 10px' }}>
               <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: '0 0 5px', textShadow: `0 0 20px ${c1}80` }}>{char.name}</p>
               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
                 {(char.tags || []).slice(0,2).map(tag => (
                   <span key={tag} style={{ fontSize: 9, color: c1, background: `${c1}18`, border: `1px solid ${c1}40`, borderRadius: 4, padding: '1px 6px', fontFamily: 'monospace' }}>{tag}</span>
                 ))}
               </div>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', margin: 0, fontFamily: 'monospace' }}>点击查看详情 →</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0, fontFamily: 'monospace' }}>点击查看详情 →</p>
+                <span className="holo-foil" style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.18em', fontFamily: 'monospace' }}>{rarity}</span>
+              </div>
             </div>
-
-            {/* 卡面纹理网格 */}
             <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)', backgroundSize: '20px 20px', pointerEvents: 'none' }} />
           </div>
 
-          {/* ── 背面 ── */}
+          {/* ── 背面（参考图风格：深色扁平 + 分段条 + 实色按钮） ── */}
           <div style={{
             position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
             borderRadius: 20, overflow: 'hidden',
-            background: 'rgba(12,10,8,0.98)',
-            border: `1px solid ${c2}`,
-            boxShadow: `0 0 0 1px ${c3}, 0 20px 60px rgba(0,0,0,0.8)`,
+            background: '#0e0e18',
+            border: '1px solid rgba(255,215,0,0.22)',
+            boxShadow: '0 0 14px rgba(255,215,0,0.08), 0 24px 64px rgba(0,0,0,0.8)',
             transform: 'rotateY(180deg)',
-            display: 'flex', flexDirection: 'column', padding: 18,
+            display: 'flex', flexDirection: 'column',
           }}>
-            {/* 背面光效 */}
-            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 30% 20%, ${c2}18 0%, transparent 60%)`, pointerEvents: 'none' }} />
+            {/* 细网格底纹 */}
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px)', backgroundSize: '14px 14px', pointerEvents: 'none' }} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <img src={char.avatar} alt="" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover', objectPosition: 'top', border: `1.5px solid ${c2}` }} />
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 800, color: '#fff', margin: 0 }}>{char.name}</p>
-                <p style={{ fontSize: 9, color: c1, margin: 0, fontFamily: 'monospace', fontWeight: 700 }}>{rarity} · Lv.{char.level || 1}</p>
+            {/* ── 顶栏 ── */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+              {/* 左：方形首字图标 + 名称 + 徽章 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 10, background: 'linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,180,0,0.08))', border: '1px solid rgba(255,215,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: 'rgba(255,215,0,0.9)', fontFamily: 'monospace' }}>{(char.name || '?')[0]}</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 18, fontWeight: 900, color: '#fff', margin: '0 0 5px', letterSpacing: '-0.02em', lineHeight: 1 }}>{char.name}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgb(255,215,0)', border: '1px solid rgba(255,215,0,0.55)', borderRadius: 4, padding: '1px 6px', fontFamily: 'monospace', letterSpacing: '0.06em' }}>{rarity}</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace' }}>LV.{char.level || 1}</span>
+                  </div>
+                </div>
+              </div>
+              {/* 右：SN */}
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.2)', margin: '0 0 2px', fontFamily: 'monospace', letterSpacing: '0.1em' }}>SN</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,215,0,0.55)', margin: 0, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.04em' }}>{`#${(char.id || '0001').toString().padStart(4,'0')}`}</p>
               </div>
             </div>
 
-            {/* 属性条 */}
-            {[
-              { label: '魅力', val: 88, color: 'rgba(255,120,180,0.9)' },
-              { label: '神秘', val: 72, color: 'rgba(140,80,255,0.9)' },
-              { label: '亲密', val: 45, color: c1 },
-            ].map(stat => (
-              <div key={stat.label} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', letterSpacing: '0.06em' }}>{stat.label}</span>
-                  <span style={{ fontSize: 9, color: stat.color, fontFamily: 'monospace', fontWeight: 700 }}>{stat.val}</span>
+            {/* ── 双表盘区 ── */}
+            <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start', padding: '18px 12px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+              <GaugeDial label="信任值" value={char.trust || 68} color="rgb(212,170,60)" size={96} />
+              <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(255,255,255,0.07)', margin: '8px 0' }} />
+              <GaugeDial label="敌意值" value={char.hostility || 23} color="rgba(160,160,180,0.7)" size={96} />
+            </div>
+
+            {/* ── 分段式属性条 ── */}
+            <div style={{ padding: '12px 16px 8px', flexShrink: 0 }}>
+              {[
+                { label: '魅力', val: char.charm || 88, color: 'rgb(212,170,60)', total: 15 },
+                { label: '神秘', val: char.mystery || 72, color: 'rgba(140,160,200,0.85)', total: 15 },
+              ].map((stat, si) => {
+                const filled = Math.round((stat.val / 100) * stat.total)
+                return (
+                  <div key={stat.label} style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', letterSpacing: '0.04em' }}>{stat.label}</span>
+                      <span style={{ fontSize: 11, color: stat.color, fontFamily: 'monospace', fontWeight: 700 }}>{stat.val}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      {Array.from({ length: stat.total }).map((_, i) => (
+                        <motion.div key={i}
+                          initial={{ opacity: 0, scaleY: 0 }}
+                          animate={{ opacity: 1, scaleY: 1 }}
+                          transition={{ delay: 0.3 + si * 0.12 + i * 0.025, duration: 0.22, ease: 'easeOut' }}
+                          style={{
+                            flex: 1, height: 8, borderRadius: 2,
+                            background: i < filled ? stat.color : 'rgba(255,255,255,0.07)',
+                            boxShadow: i < filled ? `0 0 4px ${stat.color}60` : 'none',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* ── 解密区 ── */}
+            <div style={{ margin: '0 14px', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '8px 10px', background: 'rgba(0,0,0,0.25)', position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: unlocked ? 8 : 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {!unlocked && (
+                    <motion.span
+                      animate={{ opacity: [1, 0.2, 1] }}
+                      transition={{ duration: 1.4, repeat: Infinity }}
+                      style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: 'rgba(0,255,180,0.7)', boxShadow: '0 0 5px rgba(0,255,180,0.5)', flexShrink: 0 }}
+                    />
+                  )}
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', fontFamily: 'monospace', letterSpacing: '0.1em', textTransform: 'uppercase' }}>ENCRYPTED · CHANNEL-Ω</span>
                 </div>
-                <div style={{ height: 3, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${stat.val}%` }}
-                    transition={{ delay: 0.3, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                    style={{ height: '100%', borderRadius: 99, background: stat.color, boxShadow: `0 0 6px ${stat.color}` }}
-                  />
-                </div>
+                {!unlocked && (
+                  <motion.button
+                    onClick={handleDecrypt}
+                    whileTap={{ scale: 0.93 }}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 5, padding: '4px 10px', cursor: decrypting ? 'wait' : 'pointer', color: 'rgba(255,255,255,0.7)', fontSize: 9, fontFamily: 'monospace', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}
+                  >
+                    {decrypting ? '解密中…' : '点击项链解密'}
+                  </motion.button>
+                )}
               </div>
-            ))}
+
+              {/* 噪声音频柱 */}
+              {!unlocked && !decrypting && (
+                <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', marginTop: 6, height: 16 }}>
+                  {Array.from({ length: 24 }).map((_, i) => {
+                    const h = 3 + Math.sin(i * 0.9) * 5 + Math.random() * 4
+                    return (
+                      <motion.div key={i}
+                        animate={{ height: [h, h + 4, h], opacity: [0.2, 0.45, 0.2] }}
+                        transition={{ duration: 0.7 + (i % 4) * 0.2, repeat: Infinity, delay: i * 0.04 }}
+                        style={{ width: 5, background: i % 3 === 0 ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.18)', borderRadius: 1, flexShrink: 0 }}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* 解密进度 */}
+              {decrypting && (
+                <motion.div
+                  initial={{ width: '0%' }} animate={{ width: '100%' }}
+                  transition={{ duration: 1.0, ease: 'linear' }}
+                  style={{ height: 2, background: 'linear-gradient(90deg, rgba(0,255,180,0.2), rgba(0,255,180,0.9), rgba(0,255,180,0.2))', borderRadius: 1, marginTop: 7, boxShadow: '0 0 8px rgba(0,255,180,0.5)' }}
+                />
+              )}
+
+              {/* 解密完成 */}
+              <AnimatePresence>
+                {unlocked && (
+                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                      <motion.span animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 2, repeat: Infinity }}
+                        style={{ fontSize: 11, color: 'rgba(0,255,180,0.8)', flexShrink: 0, marginTop: 1 }}>▶</motion.span>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.82)', fontFamily: 'monospace', lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>"{hiddenMsg}"</p>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                      <span style={{ fontSize: 8, color: 'rgba(0,255,180,0.4)', fontFamily: 'monospace', letterSpacing: '0.1em' }}>DECRYPTED ✓</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             <div style={{ flex: 1 }} />
 
-            {/* 台词 */}
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', lineHeight: 1.6, marginBottom: 14, fontStyle: 'italic' }}>
-              "{char.lastMsg || '等你来找我。'}"
-            </p>
-
-            {/* 收集按钮 */}
-            <motion.button
-              whileTap={{ scale: 0.93 }}
-              whileHover={{ scale: 1.02 }}
-              onClick={handleCollect}
-              style={{
-                width: '100%', padding: '10px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(130deg, #ffe066 0%, #ffb830 45%, #ff8c00 100%)',
-                fontSize: 13, fontWeight: 800, color: '#1a0a00', letterSpacing: '0.04em',
-                boxShadow: '0 4px 24px rgba(255,180,40,0.55), 0 2px 8px rgba(255,120,0,0.3)',
-                textShadow: '0 1px 3px rgba(255,255,255,0.2)',
-              }}
-            >
-              ✦ 收录角色
-            </motion.button>
+            {/* ── 收录按钮（Holographic Button） ── */}
+            <div style={{ padding: '10px 14px 18px', flexShrink: 0 }}>
+              <motion.button
+                whileTap={{ scale: 0.94 }}
+                whileHover={{ scale: 1.01 }}
+                onClick={handleCollect}
+                className="holo-btn"
+              >
+                <span className="holo-btn-text">✦ 收录角色</span>
+              </motion.button>
+            </div>
           </div>
         </motion.div>
       </motion.div>
 
-      {/* 关闭提示 */}
-      <div style={{ position: 'absolute', bottom: 40, fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: 'monospace', letterSpacing: '0.06em' }}>
-        点击空白处关闭
+      {/* 底部提示 */}
+      <div style={{ position: 'absolute', bottom: 36, fontSize: 10, color: 'rgba(255,255,255,0.22)', fontFamily: 'monospace', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
+        {flipped && countdown !== null && !unlocked ? (
+          <>
+            <span>{countdown}s 后自动关闭</span>
+            <span style={{ color: 'rgba(255,217,128,0.35)' }}>·</span>
+            <span>点击空白处关闭</span>
+          </>
+        ) : flipped && unlocked ? (
+          <span>◈ 解密完成 · 点击空白处关闭</span>
+        ) : (
+          <span>点击卡片翻转</span>
+        )}
       </div>
     </motion.div>
   )
@@ -1982,39 +2265,84 @@ function LevelUpToast({ level, onDone }) {
   const GOLD_A = (a) => `rgba(255,217,128,${a})`
   return (
     <motion.div
-      initial={{ opacity: 0, y: 60, scale: 0.85 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -40, scale: 1.05 }}
-      transition={{ type: 'spring', damping: 16, stiffness: 200 }}
-      style={{ position: 'fixed', bottom: 110, left: '50%', transform: 'translateX(-50%)', zIndex: 900, pointerEvents: 'none' }}
+      initial={{ opacity: 0, scale: 0.6, y: 40 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.8, y: -20 }}
+      transition={{ type: 'spring', damping: 14, stiffness: 180 }}
+      style={{ position: 'fixed', bottom: 120, left: '50%', transform: 'translateX(-50%)', zIndex: 900, pointerEvents: 'none' }}
     >
-      <div style={{ background: 'linear-gradient(135deg, rgba(20,15,5,0.95) 0%, rgba(40,28,6,0.95) 100%)', border: `1px solid ${GOLD_A(0.45)}`, borderRadius: 20, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: `0 8px 40px rgba(0,0,0,0.6), 0 0 30px ${GOLD_A(0.2)}`, backdropFilter: 'blur(20px)', whiteSpace: 'nowrap' }}>
-        {/* 光晕圈 */}
-        <div style={{ position: 'relative', width: 48, height: 48, flexShrink: 0 }}>
-          <motion.div
-            animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ position: 'absolute', inset: -6, borderRadius: '50%', border: `2px solid ${GOLD_A(0.5)}` }}
-          />
-          <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: `radial-gradient(circle, ${GOLD_A(0.25)} 0%, transparent 70%)`, border: `2px solid ${GOLD}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-            ⬆️
-          </div>
+      {/* 外层光晕 */}
+      <motion.div
+        animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }}
+        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ position: 'absolute', inset: -20, borderRadius: 40, background: `radial-gradient(ellipse, ${GOLD_A(0.2)} 0%, transparent 70%)`, pointerEvents: 'none' }}
+      />
+      <div style={{
+        position: 'relative',
+        background: 'linear-gradient(160deg, rgba(255,217,128,0.18) 0%, rgba(20,14,4,0.98) 50%, rgba(255,160,30,0.12) 100%)',
+        border: `1.5px solid ${GOLD_A(0.6)}`,
+        borderRadius: 28,
+        padding: '20px 32px 18px',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+        boxShadow: `0 0 0 1px ${GOLD_A(0.12)}, 0 12px 48px rgba(0,0,0,0.7), 0 0 40px ${GOLD_A(0.25)}`,
+        backdropFilter: 'blur(24px)',
+        overflow: 'hidden',
+        minWidth: 180,
+      }}>
+        {/* 顶部扫光 */}
+        <motion.div
+          animate={{ x: ['-120%', '200%'] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(90deg, transparent, rgba(255,217,128,0.08), transparent)', pointerEvents: 'none' }}
+        />
+        {/* LEVEL UP 小标题 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 24, height: 1, background: `linear-gradient(to right, transparent, ${GOLD_A(0.5)})` }} />
+          <span style={{ fontSize: 9, color: GOLD_A(0.7), fontFamily: 'monospace', letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 700 }}>Level Up</span>
+          <div style={{ width: 24, height: 1, background: `linear-gradient(to left, transparent, ${GOLD_A(0.5)})` }} />
         </div>
-        <div>
-          <p style={{ fontSize: 10, color: GOLD_A(0.6), fontFamily: 'monospace', margin: '0 0 3px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Level Up!</p>
-          <p style={{ fontSize: 22, fontWeight: 900, color: GOLD, margin: 0, lineHeight: 1, letterSpacing: '0.02em' }}>Lv.{level} 解锁</p>
+        {/* 大号等级数字 */}
+        <div style={{ position: 'relative' }}>
+          <motion.p
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.15, type: 'spring', damping: 10, stiffness: 200 }}
+            style={{ fontSize: 52, fontWeight: 900, color: GOLD, margin: 0, lineHeight: 1, fontFamily: 'monospace', letterSpacing: '-0.03em', textShadow: `0 0 20px ${GOLD_A(0.5)}, 0 0 40px ${GOLD_A(0.25)}` }}
+          >{level}</motion.p>
+          <span style={{ position: 'absolute', top: 4, right: -20, fontSize: 13, color: GOLD_A(0.6), fontFamily: 'monospace', fontWeight: 700 }}>Lv</span>
         </div>
-        {/* 星星粒子 */}
-        {[...Array(5)].map((_, i) => (
-          <motion.span
-            key={i}
-            initial={{ opacity: 0, x: 0, y: 0 }}
-            animate={{ opacity: [0, 1, 0], x: (i - 2) * 18, y: -24 - i * 4 }}
-            transition={{ delay: i * 0.08, duration: 1, ease: 'easeOut' }}
-            style={{ position: 'absolute', top: 10, right: 20, fontSize: 11, pointerEvents: 'none' }}
-          >⭐</motion.span>
-        ))}
+        {/* 解锁文字 */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+        >
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontFamily: 'monospace', letterSpacing: '0.12em' }}>解锁新内容</span>
+          <motion.span animate={{ rotate: [0, 20, -10, 0] }} transition={{ delay: 0.5, duration: 0.6 }} style={{ fontSize: 13 }}>✨</motion.span>
+        </motion.div>
+        {/* 底部进度点 */}
+        <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+          {[...Array(5)].map((_, i) => (
+            <motion.div key={i}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 + i * 0.06 }}
+              style={{ width: 4, height: 4, borderRadius: '50%', background: i < (level % 5 || 5) ? GOLD : GOLD_A(0.2) }}
+            />
+          ))}
+        </div>
       </div>
+      {/* 飞散粒子 */}
+      {[...Array(8)].map((_, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
+          animate={{ opacity: [0, 1, 0], x: Math.cos(i / 8 * Math.PI * 2) * 55, y: Math.sin(i / 8 * Math.PI * 2) * 55 - 10, scale: [0, 1, 0] }}
+          transition={{ delay: 0.1 + i * 0.05, duration: 0.9, ease: 'easeOut' }}
+          style={{ position: 'absolute', top: '50%', left: '50%', fontSize: i % 2 === 0 ? 12 : 9, pointerEvents: 'none', marginTop: -6, marginLeft: -6 }}
+        >{i % 3 === 0 ? '⭐' : i % 3 === 1 ? '✦' : '·'}</motion.span>
+      ))}
     </motion.div>
   )
 }
@@ -2079,7 +2407,7 @@ function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, t
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 30 }}
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          style={{ position: 'fixed', inset: 0, zIndex: 600, background: '#080608', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          style={{ position: 'absolute', inset: 0, zIndex: 25, background: '#080608', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         >
           {/* ── 顶部背景装饰 ── */}
           <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
@@ -2088,12 +2416,6 @@ function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, t
 
           {/* ── 顶部个人信息 ── */}
           <div style={{ flexShrink: 0, paddingTop: 52, paddingBottom: 0, position: 'relative', zIndex: 1 }}>
-            {/* 关闭按钮 */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px 10px' }}>
-              <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
-                <X size={14} />
-              </button>
-            </div>
             {/* 头像 + 信息 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '0 20px 14px' }}>
               <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -2111,12 +2433,12 @@ function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, t
                     <span style={{ fontSize: 9, color: GOLD_A(0.6), fontFamily: 'monospace' }}>EXP {xpInLevel} / {xpNeeded}</span>
                     <span style={{ fontSize: 9, color: GOLD_A(0.45), fontFamily: 'monospace' }}>{xpPct}%</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+                  <div style={{ height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${xpPct}%` }}
                       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                      style={{ height: '100%', borderRadius: 99, background: `linear-gradient(90deg, #ffb830, #ff8c00)`, boxShadow: '0 0 8px rgba(255,160,30,0.5)' }}
+                      style={{ height: '100%', borderRadius: 4, background: 'rgba(255,217,128,0.75)', boxShadow: '0 0 6px rgba(255,217,128,0.3)' }}
                     />
                   </div>
                 </div>
@@ -2175,7 +2497,7 @@ function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, t
                 ))}
               </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none', padding: '10px 16px 32px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none', padding: '10px 16px 90px' }}>
 
                 {/* ── 每日任务 ── */}
                 {growthTab === '任务' && (
@@ -2210,12 +2532,12 @@ function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, t
                               <span style={{ fontSize: 10, color: done ? GOLD : 'rgba(255,255,255,0.35)', fontFamily: 'monospace', flexShrink: 0, marginLeft: 8 }}>{prog}/{task.goal}</span>
                             </div>
                             {/* 进度条 */}
-                            <div style={{ height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+                            <div style={{ height: 3, borderRadius: 4, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${pct}%` }}
                                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                                style={{ height: '100%', borderRadius: 99, background: done ? `linear-gradient(90deg, ${GOLD}, #ff8c00)` : 'rgba(255,255,255,0.2)' }}
+                                style={{ height: '100%', borderRadius: 4, background: done ? 'rgba(255,217,128,0.7)' : 'rgba(255,255,255,0.18)', boxShadow: done ? '0 0 5px rgba(255,217,128,0.25)' : 'none' }}
                               />
                             </div>
                           </div>
@@ -2286,7 +2608,7 @@ function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, t
                 </div>
                 <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.22)', fontFamily: 'monospace' }}>每周更新</span>
               </div>
-              <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none', padding: '10px 16px 32px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none', padding: '10px 16px 90px' }}>
                 {shopTab === '场景' && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     {SCENES.map(scene => {
@@ -2310,7 +2632,7 @@ function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, t
                               <button style={{ width: '100%', height: 34, borderRadius: 10, background: GOLD_A(0.08), border: `1px solid ${GOLD_A(0.2)}`, fontSize: 12, color: GOLD_A(0.7), fontWeight: 600, cursor: 'default' }}>已解锁 ✓</button>
                             ) : (
                               <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleBuy(scene)}
-                                style={{ width: '100%', height: 34, borderRadius: 10, background: 'linear-gradient(130deg, #ffe066 0%, #ffb830 100%)', border: 'none', fontSize: 12, color: '#1a0a00', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 12px rgba(255,180,40,0.3)' }}>
+                                style={{ width: '100%', height: 34, borderRadius: 8, background: 'rgba(255,217,128,0.09)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,217,128,0.5)', fontSize: 12, color: 'rgb(255,217,128)', fontWeight: 700, cursor: 'pointer', boxShadow: '0 0 10px rgba(255,217,128,0.15), inset 0 1px 0 rgba(255,255,255,0.06)', letterSpacing: '0.04em' }}>
                                 ⭐{scene.price} 解锁场景
                               </motion.button>
                             )}
@@ -2353,11 +2675,12 @@ export default function App() {
   const [inspirationLabOpen, setInspirationLabOpen] = useState(false)
   const [cardChar, setCardChar] = useState(null)   // 角色卡片翻转弹层
   // ── 场景 / 个人主页 ──
-  const [activeSceneId, setActiveSceneId] = useState('default')
+  const [activeSceneId, setActiveSceneId] = useState(null)
   const [scenePickerOpen, setScenePickerOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [followedSet, setFollowedSet] = useState(new Set(FOLLOW_CHARS.map(c => c.id)))
   // ── 推荐页解锁流 ──
-  const [recommendCharIdx, setRecommendCharIdx] = useState(0)  // 当前推荐角色下标
+  const [recommendCharIdx, setRecommendCharIdx] = useState(5)  // 当前推荐角色下标（默认显示星人/man2）
   const [showSwipeHint, setShowSwipeHint] = useState(true)     // 仅首次展示上滑提示
   // ── 游戏数值反馈 ──
   const [energy, setEnergy] = useState(24)          // 亲密能量 0-100
@@ -2585,7 +2908,23 @@ export default function App() {
       )}
 
       {/* ─── Header（单行固定高度） ─── */}
-      <header className="relative z-20 flex justify-between items-center px-5 w-full shrink-0" style={{ paddingTop: 56, paddingBottom: 12, height: 'calc(56px + 40px + 12px)' }}>
+      <header className="relative z-20 flex justify-between items-center px-5 w-full shrink-0" style={{ paddingTop: 56, paddingBottom: 4, height: 'calc(56px + 40px + 4px)' }}>
+        {/* ── 顶端 2px 呼吸霓虹能量线 ── */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, zIndex: 30, overflow: 'hidden', pointerEvents: 'none' }}>
+          <motion.div
+            animate={{ width: `${energy}%` }}
+            transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+            style={{
+              height: '100%',
+              background: `linear-gradient(90deg, ${moodColors[mood]}, rgba(255,217,128,0.9))`,
+              boxShadow: energyPulse
+                ? `0 0 8px ${moodColors[mood]}, 0 0 16px rgba(255,217,128,0.5)`
+                : `0 0 4px ${moodColors[mood]}`,
+              borderRadius: '0 2px 2px 0',
+              opacity: 0.85,
+            }}
+          />
+        </div>
         {/* 左侧：搜索按钮 */}
         <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel hover:bg-white/10 transition-colors active:scale-95">
           <MagnifyingGlass size={18} color="white" />
@@ -2711,19 +3050,62 @@ export default function App() {
                     className="text-xs font-semibold tracking-wide leading-none"
                   >{FOLLOW_CHARS[recommendCharIdx].name}</motion.span>
                 </AnimatePresence>
-                <div className="flex gap-1.5 pointer-events-none select-none">
-                  {FOLLOW_CHARS[recommendCharIdx].tags.map((tag) => (
+                {/* Vibe Capsule：tags + 情绪合并 */}
+                <motion.div
+                  key={mood + recommendCharIdx}
+                  initial={{ opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex items-center gap-1 pointer-events-none select-none"
+                >
+                  {FOLLOW_CHARS[recommendCharIdx].tags.slice(0, 1).map((tag) => (
                     <span key={tag} className="font-mono" style={{ fontSize: '9px', color: 'rgba(255,217,128,0.5)', letterSpacing: '0.06em' }}>{tag}</span>
                   ))}
-                </div>
+                  <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace' }}>·</span>
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: moodColors[mood], boxShadow: `0 0 5px ${moodColors[mood]}`, flexShrink: 0 }} />
+                  <span className="font-mono" style={{ fontSize: '9px', color: moodColors[mood], letterSpacing: '0.06em', fontWeight: 600 }}>{moodLabels[mood]}</span>
+                </motion.div>
               </div>
-              {/* 金色透明底 + 号 */}
-              <button
-                className="flex items-center justify-center rounded-full shrink-0 transition-all active:scale-90 hover:scale-105"
-                style={{ width: 26, height: 26, background: 'rgba(255,217,128,0.12)', border: '1px solid rgba(255,217,128,0.45)', boxShadow: '0 0 10px rgba(255,217,128,0.2)' }}
+              {/* 金色透明底 + 号 / ✓ 勾（带动画） */}
+              <motion.button
+                onClick={() => setFollowedSet(prev => {
+                  const next = new Set(prev)
+                  const id = FOLLOW_CHARS[recommendCharIdx].id
+                  next.has(id) ? next.delete(id) : next.add(id)
+                  return next
+                })}
+                whileTap={{ scale: 0.85 }}
+                whileHover={{ scale: 1.1 }}
+                animate={followedSet.has(FOLLOW_CHARS[recommendCharIdx].id)
+                  ? { background: 'rgba(255,217,128,0.22)', borderColor: 'rgba(255,217,128,0.8)', boxShadow: '0 0 14px rgba(255,217,128,0.35)' }
+                  : { background: 'rgba(255,217,128,0.12)', borderColor: 'rgba(255,217,128,0.45)', boxShadow: '0 0 10px rgba(255,217,128,0.2)' }
+                }
+                transition={{ duration: 0.25 }}
+                className="flex items-center justify-center rounded-full shrink-0"
+                style={{ width: 26, height: 26, border: '1px solid rgba(255,217,128,0.45)', fontSize: 12, color: 'rgb(255,217,128)', overflow: 'hidden', position: 'relative', flexShrink: 0 }}
               >
-                <Plus size={12} weight="bold" color="rgb(255,217,128)" />
-              </button>
+                <AnimatePresence mode="wait" initial={false}>
+                  {followedSet.has(FOLLOW_CHARS[recommendCharIdx].id) ? (
+                    <motion.span
+                      key="check"
+                      initial={{ scale: 0, rotate: -45, opacity: 0 }}
+                      animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                      exit={{ scale: 0, rotate: 45, opacity: 0 }}
+                      transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'rgb(255,217,128)', lineHeight: 1 }}
+                    >✓</motion.span>
+                  ) : (
+                    <motion.span
+                      key="plus"
+                      initial={{ scale: 0, rotate: 45, opacity: 0 }}
+                      animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                      exit={{ scale: 0, rotate: -45, opacity: 0 }}
+                      transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    ><Plus size={12} weight="bold" color="rgb(255,217,128)" /></motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
               {/* 灰色圆形评论图标 */}
               <button
                 onClick={() => { setCommentChar(FOLLOW_CHARS[recommendCharIdx].name); setCommentOpen(true) }}
@@ -2756,50 +3138,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* ─── 情绪 + 能量槽（对话区上方，与胶囊左对齐） ─── */}
-          <div className="relative z-20 shrink-0 flex items-center gap-4" style={{ padding: '6px 20px 2px' }}>
-            {/* 能量槽 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(12px)', borderRadius: 999, padding: '4px 10px 4px 8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                <path d="M13 2L4.09 12.96A1 1 0 0 0 5 14.5h7L10 22l10.91-9.96A1 1 0 0 0 20 10.5h-7L13 2z" fill="rgba(255,217,128,0.85)" />
-              </svg>
-              <div style={{ width: 64, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', position: 'relative' }}>
-                <motion.div
-                  animate={{ width: `${energy}%` }}
-                  transition={{ type: 'spring', damping: 18, stiffness: 200 }}
-                  style={{ height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, rgba(255,180,60,0.9), rgba(255,217,128,1))', boxShadow: energyPulse ? '0 0 8px rgba(255,217,128,0.8)' : '0 0 4px rgba(255,217,128,0.3)' }}
-                />
-                {energyPulse && (
-                  <motion.div
-                    initial={{ opacity: 0.8, scaleX: 1 }}
-                    animate={{ opacity: 0, scaleX: 1.4 }}
-                    transition={{ duration: 0.5 }}
-                    style={{ position: 'absolute', inset: 0, background: 'rgba(255,217,128,0.4)', borderRadius: 99, transformOrigin: 'left' }}
-                  />
-                )}
-              </div>
-              <span style={{ fontSize: 10, color: 'rgba(255,217,128,0.75)', fontFamily: 'monospace', fontWeight: 700, minWidth: 22, textAlign: 'right' }}>{energy}</span>
-            </div>
-
-            {/* 情绪标签 */}
-            <motion.div
-              key={mood}
-              initial={{ opacity: 0, y: -4, scale: 0.92 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)',
-                borderRadius: 999, padding: '3px 10px 3px 7px',
-                border: `1px solid ${moodColors[mood]}`,
-              }}
-            >
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: moodColors[mood], boxShadow: `0 0 6px ${moodColors[mood]}` }} />
-              <span style={{ fontSize: 10, color: moodColors[mood], fontFamily: 'monospace', fontWeight: 600, letterSpacing: '0.05em' }}>
-                {moodLabels[mood]}
-              </span>
-            </motion.div>
-          </div>
 
           {/* ─── 上滑提示（仅首次 / 还有角色可解锁时显示） ─── */}
           <AnimatePresence>
@@ -2826,14 +3164,14 @@ export default function App() {
 
           {/* ─── 对话区 ─── */}
           <div className="relative z-20 flex-1 flex flex-col justify-end" style={{ minHeight: 0, overflow: 'hidden' }}>
-            <div className="px-4 shrink-0 overflow-y-auto" style={{ scrollbarWidth: 'none', maxHeight: '52vh' }}>
+            <div className="px-5 shrink-0 overflow-y-auto" style={{ scrollbarWidth: 'none', maxHeight: '70vh' }}>
               <div className="flex flex-col min-h-full">
                 <div className="flex-1" />
 
                 {/* 默认文案：无对话时显示 */}
                 {messages.length === 0 && (
                   <p
-                    className="font-mono text-xs leading-relaxed tracking-wide py-3 mb-3"
+                    className="font-mono text-xs leading-relaxed tracking-wide py-5 mb-3"
                     style={{
                       color: 'rgba(255,255,255,0.65)',
                       borderTop: '1px solid rgba(255,255,255,0.07)',
@@ -2900,7 +3238,7 @@ export default function App() {
           </div>
 
           {/* ─── Chat Input ─── */}
-          <div className="relative z-30 px-5 py-3 shrink-0">
+          <div className="relative z-30 px-5 py-5 shrink-0" style={{ visibility: profileOpen ? 'hidden' : 'visible', pointerEvents: profileOpen ? 'none' : 'auto' }}>
             <div
               className="glass-input rounded-[28px] p-1.5 pl-5 flex items-center gap-3 w-full transition-all duration-300"
               style={isRecording ? { border: '1px solid rgba(255,217,128,0.5)', background: 'rgba(255,217,128,0.07)' } : {}}
@@ -3047,11 +3385,45 @@ export default function App() {
                         ))}
                       </div>
                     </div>
-                    {/* 金色透明底 ✓ 勾（已关注） */}
-                    <button
-                      className="flex items-center justify-center rounded-full shrink-0 transition-all active:scale-90 hover:scale-105"
-                      style={{ width: 26, height: 26, background: 'rgba(255,217,128,0.12)', border: '1px solid rgba(255,217,128,0.45)', boxShadow: '0 0 10px rgba(255,217,128,0.2)', fontSize: 12, color: 'rgb(255,217,128)' }}
-                    >✓</button>
+                    {/* 金色透明底 + 号 / ✓ 勾（带动画） */}
+                    <motion.button
+                      onClick={() => setFollowedSet(prev => {
+                        const next = new Set(prev)
+                        next.has(char.id) ? next.delete(char.id) : next.add(char.id)
+                        return next
+                      })}
+                      whileTap={{ scale: 0.85 }}
+                      whileHover={{ scale: 1.1 }}
+                      animate={followedSet.has(char.id)
+                        ? { background: 'rgba(255,217,128,0.22)', boxShadow: '0 0 14px rgba(255,217,128,0.35)' }
+                        : { background: 'rgba(255,217,128,0.12)', boxShadow: '0 0 10px rgba(255,217,128,0.2)' }
+                      }
+                      transition={{ duration: 0.25 }}
+                      className="flex items-center justify-center rounded-full shrink-0"
+                      style={{ width: 26, height: 26, border: '1px solid rgba(255,217,128,0.45)', fontSize: 12, color: 'rgb(255,217,128)', overflow: 'hidden', position: 'relative', flexShrink: 0 }}
+                    >
+                      <AnimatePresence mode="wait" initial={false}>
+                        {followedSet.has(char.id) ? (
+                          <motion.span
+                            key="check"
+                            initial={{ scale: 0, rotate: -45, opacity: 0 }}
+                            animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                            exit={{ scale: 0, rotate: 45, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'rgb(255,217,128)', lineHeight: 1 }}
+                          >✓</motion.span>
+                        ) : (
+                          <motion.span
+                            key="plus"
+                            initial={{ scale: 0, rotate: 45, opacity: 0 }}
+                            animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                            exit={{ scale: 0, rotate: -45, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          ><Plus size={12} weight="bold" color="rgb(255,217,128)" /></motion.span>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
                     {/* 灰色圆形评论图标 */}
                     <button
                       onClick={() => { setCommentChar(char.name); setCommentOpen(true) }}
@@ -3074,7 +3446,7 @@ export default function App() {
 
                 {/* 对话区（与推荐页完全相同） */}
                 <div className="relative z-20 flex-1 flex flex-col justify-end" style={{ minHeight: 0, overflow: 'hidden' }}>
-                  <div className="px-4 shrink-0 overflow-y-auto" style={{ scrollbarWidth: 'none', maxHeight: '52vh' }}>
+                  <div className="px-5 shrink-0 overflow-y-auto" style={{ scrollbarWidth: 'none', maxHeight: '52vh' }}>
                     <div className="flex flex-col min-h-full">
                       <div className="flex-1" />
                       {messages.length === 0 && (
@@ -3214,9 +3586,23 @@ export default function App() {
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '11px 10px 13px' }}>
                         <div className="flex items-start justify-between gap-1">
                           <span className="font-bold leading-none" style={{ fontSize: 20, color: '#fff', textShadow: '0 0 14px rgba(255,255,255,0.2), 0 1px 5px rgba(0,0,0,0.95)', letterSpacing: '0.02em' }}>{char.name}</span>
-                          {/* 轻量关注勾按钮 */}
-                          <button
-                            onClick={e => e.stopPropagation()}
+                          {/* 轻量关注按钮（带动画） */}
+                          <motion.button
+                            onClick={e => {
+                              e.stopPropagation()
+                              setFollowedSet(prev => {
+                                const next = new Set(prev)
+                                next.has(char.id) ? next.delete(char.id) : next.add(char.id)
+                                return next
+                              })
+                            }}
+                            whileTap={{ scale: 0.82 }}
+                            whileHover={{ scale: 1.12 }}
+                            animate={followedSet.has(char.id)
+                              ? { background: 'rgba(255,217,128,0.22)', boxShadow: '0 0 10px rgba(255,217,128,0.3)' }
+                              : { background: 'rgba(255,217,128,0.1)', boxShadow: '0 0 6px rgba(255,217,128,0.15)' }
+                            }
+                            transition={{ duration: 0.25 }}
                             style={{
                               flexShrink: 0,
                               width: 22,
@@ -3224,16 +3610,36 @@ export default function App() {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '12px',
-                              color: 'rgb(255,217,128)',
-                              background: 'rgba(255,217,128,0.1)',
                               border: '1px solid rgba(255,217,128,0.35)',
                               borderRadius: '50%',
                               backdropFilter: 'blur(4px)',
                               cursor: 'pointer',
-                              boxShadow: '0 0 6px rgba(255,217,128,0.15)',
+                              overflow: 'hidden',
+                              position: 'relative',
                             }}
-                          >✓</button>
+                          >
+                            <AnimatePresence mode="wait" initial={false}>
+                              {followedSet.has(char.id) ? (
+                                <motion.span
+                                  key="check"
+                                  initial={{ scale: 0, rotate: -45, opacity: 0 }}
+                                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                                  exit={{ scale: 0, rotate: 45, opacity: 0 }}
+                                  transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+                                  style={{ fontSize: '12px', color: 'rgb(255,217,128)', lineHeight: 1 }}
+                                >✓</motion.span>
+                              ) : (
+                                <motion.span
+                                  key="plus"
+                                  initial={{ scale: 0, rotate: 45, opacity: 0 }}
+                                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                                  exit={{ scale: 0, rotate: -45, opacity: 0 }}
+                                  transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                ><Plus size={10} weight="bold" color="rgb(255,217,128)" /></motion.span>
+                              )}
+                            </AnimatePresence>
+                          </motion.button>
                         </div>
                         <div className="flex items-end justify-between gap-1">
                           <div className="flex items-start gap-1" style={{ flex: 1, minWidth: 0 }}>
@@ -3281,22 +3687,33 @@ export default function App() {
       {/* ─── CommentDrawer ─── */}
       <CommentDrawer open={commentOpen} onClose={() => setCommentOpen(false)} charName={commentChar} />
 
+      {/* ─── ProfilePage（嵌在主容器内，导航可见） ─── */}
+      <ProfilePage
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        xp={xp}
+        level={level}
+        taskProgress={taskProgress}
+        unlockedBadges={unlockedBadges}
+        totalMsgs={totalMsgs}
+        coinBalance={coinBalance}
+      />
+
       {/* ─── Bottom Nav ─── */}
-      <nav className="relative z-30 glass-nav px-4 w-full shrink-0" style={{ paddingTop: 10, paddingBottom: 10 }}>
+      <nav className="relative z-30 glass-nav px-8 w-full shrink-0" style={{ paddingTop: 10, paddingBottom: 10 }}>
         <div className="flex justify-between items-center">
           {/* 首页 */}
-          <button className="flex items-center justify-center flex-1 h-12 group text-white">
+          <button onClick={() => setProfileOpen(false)} className="flex items-center justify-center flex-1 h-12 group transition-colors" style={{ color: profileOpen ? 'rgba(255,255,255,0.4)' : '#fff' }}>
             <div className="relative flex items-center justify-center">
               <House size={26} weight="light" className="group-active:scale-90 transition-transform" />
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'rgb(255,217,128)', boxShadow: '0 0 5px rgb(255,217,128)' }} />
+              {!profileOpen && (
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'rgb(255,217,128)', boxShadow: '0 0 5px rgb(255,217,128)' }} />
+              )}
             </div>
           </button>
           {/* 消息 */}
           <button className="flex items-center justify-center flex-1 h-12 group hover:text-white transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            <div className="relative flex items-center justify-center">
-              <ChatCenteredText size={26} weight="light" className="group-active:scale-90 transition-transform" />
-              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border-2" style={{ backgroundColor: 'rgb(255,217,128)', borderColor: '#050505' }} />
-            </div>
+            <ChatCenteredText size={26} weight="light" className="group-active:scale-90 transition-transform" />
           </button>
           {/* 创作（中心，高亮） */}
           <button
@@ -3312,8 +3729,13 @@ export default function App() {
             <MagnifyingGlass size={26} weight="light" className="group-active:scale-90 transition-transform" />
           </button>
           {/* 个人 */}
-          <button onClick={() => setProfileOpen(true)} className="flex items-center justify-center flex-1 h-12 group hover:text-white transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            <User size={26} weight="light" className="group-active:scale-90 transition-transform" />
+          <button onClick={() => setProfileOpen(true)} className="flex items-center justify-center flex-1 h-12 group hover:text-white transition-colors" style={{ color: profileOpen ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+            <div className="relative flex items-center justify-center">
+              <User size={26} weight={profileOpen ? 'regular' : 'light'} className="group-active:scale-90 transition-transform" />
+              {profileOpen && (
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'rgb(255,217,128)', boxShadow: '0 0 5px rgb(255,217,128)' }} />
+              )}
+            </div>
           </button>
         </div>
         <div className="w-[120px] h-1.5 rounded-full mx-auto mt-1" style={{ backgroundColor: 'rgba(255,255,255,0.3)' }} />
@@ -3327,18 +3749,6 @@ export default function App() {
       activeSceneId={activeSceneId}
       onSelect={(id) => { setActiveSceneId(id); setScenePickerOpen(false) }}
       onGoShop={() => { setScenePickerOpen(false); setProfileOpen(true) }}
-    />
-
-    {/* ─── ProfilePage ─── */}
-    <ProfilePage
-      open={profileOpen}
-      onClose={() => setProfileOpen(false)}
-      xp={xp}
-      level={level}
-      taskProgress={taskProgress}
-      unlockedBadges={unlockedBadges}
-      totalMsgs={totalMsgs}
-      coinBalance={coinBalance}
     />
 
     {/* ─── LevelUpToast ─── */}

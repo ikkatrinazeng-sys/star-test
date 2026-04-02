@@ -17,18 +17,29 @@
   --color-cyber-muted: #808080;
 }
 
-html, body, #root {
+html, body {
   height: 100%;
   height: 100dvh;
-}
-
-body {
-  background-color: #000;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   margin: 0;
   padding: 0;
   overflow: hidden;
+  background-color: #000;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  width: 390px;
+  min-width: 390px;
+  height: 844px;
+  min-height: 844px;
+  position: relative;
+  overflow: hidden;
+  background-color: #030303;
+  flex-shrink: 0;
 }
 
 .glass-panel {
@@ -115,4 +126,96 @@ body {
 
 .char-card-enter {
   animation: card-slide-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Holographic Button ── */
+@keyframes holo-glow-sweep {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.holo-btn {
+  position: relative;
+  width: 100%;
+  padding: 11px 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 217, 128, 0.45);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 0 0 0 rgba(255, 217, 128, 0);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+/* 内部流光扫过层 */
+.holo-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 217, 128, 0.12) 40%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 217, 128, 0.10) 60%,
+    transparent 80%
+  );
+  background-size: 300% 100%;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.holo-btn:hover::before,
+.holo-btn:active::before {
+  opacity: 1;
+  animation: holo-glow-sweep 0.8s ease forwards;
+}
+
+.holo-btn:hover,
+.holo-btn:active {
+  border-color: rgba(255, 217, 128, 0.75);
+  box-shadow:
+    0 0 12px rgba(255, 217, 128, 0.2),
+    0 0 28px rgba(255, 217, 128, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.holo-btn-text {
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255, 217, 128, 0.9);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* 全息烫印稀有度文字 */
+@keyframes holo-shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.holo-foil {
+  background: linear-gradient(
+    105deg,
+    #c0c0c0 0%,
+    #fff8e7 18%,
+    #ffe066 30%,
+    #d4af37 42%,
+    #e8c4ff 55%,
+    #a0c4ff 68%,
+    #d4af37 80%,
+    #fff8e7 90%,
+    #c0c0c0 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: holo-shimmer 3.5s ease infinite;
+  filter: drop-shadow(0 0 2px rgba(255,255,255,0.25));
 }
