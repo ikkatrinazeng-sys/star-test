@@ -2374,7 +2374,7 @@ function TaskCompleteToast({ task, onDone }) {
   )
 }
 
-function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, totalMsgs, coinBalance }) {
+function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, totalMsgs, coinBalance, collectedChars }) {
   const [shopTab, setShopTab] = useState('场景')
   const [growthTab, setGrowthTab] = useState('任务')
   const [ownedScenes, setOwnedScenes] = useState(SCENES.filter(s => s.owned).map(s => s.id))
@@ -2392,7 +2392,7 @@ function ProfilePage({ open, onClose, xp, level, taskProgress, unlockedBadges, t
   const xpPct = Math.min(100, Math.round((xpInLevel / xpNeeded) * 100))
 
   // 成就检测状态
-  const achieveState = { totalMsgs, level, ownedScenes: ownedScenes.length, loginDays: 3, collectedChars: 2, nightChat: false, totalSpent: 0, warmCount: 0 }
+  const achieveState = { totalMsgs, level, ownedScenes: ownedScenes.length, loginDays: 3, collectedChars, nightChat: false, totalSpent: 0, warmCount: 0 }
 
   function handleBuy(scene) {
     setOwnedScenes(prev => [...prev, scene.id])
@@ -2691,6 +2691,7 @@ export default function App() {
   const [level, setLevel] = useState(1)             // 当前等级
   const [coinBalance, setCoinBalance] = useState(120) // 星币余额
   const [totalMsgs, setTotalMsgs] = useState(0)    // 累计发送消息数
+  const [collectedChars, setCollectedChars] = useState(0) // 已收录角色数
   const [taskProgress, setTaskProgress] = useState({ chat3: 0, send10: 0, collect1: 0, scene1: 0, login: 1 })
   const [unlockedBadges, setUnlockedBadges] = useState([])
   const [levelUpToast, setLevelUpToast] = useState(null)       // { level: N } | null
@@ -2860,10 +2861,9 @@ export default function App() {
     const dy = touchStartYRef.current - e.changedTouches[0].clientY
     touchStartYRef.current = null
     if (dy < 60) return   // 上滑距离不够
-    const nextIdx = recommendCharIdx + 1
-    if (nextIdx >= FOLLOW_CHARS.length) return
-    const next = FOLLOW_CHARS[nextIdx]
-    setCardChar({ ...next, rarity: next.level >= 5 ? 'SSR' : next.level >= 3 ? 'SR' : 'R', isUnlock: true })
+    // 弹出当前推荐角色的卡片翻转效果，使用指定图片
+    const cur = FOLLOW_CHARS[recommendCharIdx]
+    setCardChar({ ...cur, avatar: '/0909.webp', rarity: cur.level >= 5 ? 'SSR' : cur.level >= 3 ? 'SR' : 'R', isUnlock: false })
   }
 
   return (
@@ -3121,19 +3121,23 @@ export default function App() {
                   setCardChar({ ...c, rarity: c.level >= 5 ? 'SSR' : c.level >= 3 ? 'SR' : 'R' })
                 }}
                 className="flex items-center justify-center rounded-full shrink-0 transition-all active:scale-90 hover:scale-110"
-                style={{ width: 26, height: 26, background: 'rgba(255,217,128,0.08)', border: '1px solid rgba(255,217,128,0.25)' }}
+                style={{ width: 26, height: 26, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
                 title="查看角色卡片"
               >
-                <span style={{ fontSize: 11, color: 'rgba(255,217,128,0.8)', lineHeight: 1 }}>✦</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1 }}>✦</span>
               </button>
-              {/* 🎭 场景切换按钮 */}
+              {/* 场景切换按钮 */}
               <button
                 onClick={() => setScenePickerOpen(true)}
                 className="flex items-center justify-center rounded-full shrink-0 transition-all active:scale-90 hover:scale-110"
                 style={{ width: 26, height: 26, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
                 title="切换场景"
               >
-                <span style={{ fontSize: 13, lineHeight: 1 }}>🎭</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <path d="M3 15l5-5 4 4 3-3 6 6"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -3171,7 +3175,7 @@ export default function App() {
                 {/* 默认文案：无对话时显示 */}
                 {messages.length === 0 && (
                   <p
-                    className="font-mono text-xs leading-relaxed tracking-wide py-5 mb-3"
+                    className="font-mono text-xs leading-relaxed tracking-wide py-4 mb-0.5"
                     style={{
                       color: 'rgba(255,255,255,0.65)',
                       borderTop: '1px solid rgba(255,255,255,0.07)',
@@ -3189,7 +3193,7 @@ export default function App() {
                 )}
 
                 {/* 聊天气泡 */}
-                <div className="flex flex-col gap-2 pb-2">
+                <div className="flex flex-col gap-2">
                   {messages.map((msg) => (
                     <div key={msg.id} className={`flex items-end gap-1.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       {msg.role === 'ai' ? (
@@ -3464,7 +3468,7 @@ export default function App() {
                           }}
                         >{char.lastMsg}</p>
                       )}
-                      <div className="flex flex-col gap-2 pb-2">
+                      <div className="flex flex-col gap-2">
                         {messages.map((msg) => (
                           <div key={msg.id} className={`flex items-end gap-1.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             {msg.role === 'ai' ? (
@@ -3697,6 +3701,7 @@ export default function App() {
         unlockedBadges={unlockedBadges}
         totalMsgs={totalMsgs}
         coinBalance={coinBalance}
+        collectedChars={collectedChars}
       />
 
       {/* ─── Bottom Nav ─── */}
@@ -3791,8 +3796,36 @@ export default function App() {
         <CharacterCardFlip
           char={cardChar}
           onCollect={() => {
+            // ── 收录奖励 ──
+            const collectXP = 50
+            const collectCoin = 15
+            setXp(prev => {
+              const next = prev + collectXP
+              const curLv = LEVEL_THRESHOLDS.findIndex((t, i) => next < (LEVEL_THRESHOLDS[i + 1] ?? Infinity))
+              const effectiveLv = Math.max(1, curLv)
+              setLevel(oldLv => {
+                if (effectiveLv > oldLv) {
+                  setLevelUpToast({ level: effectiveLv })
+                  setCoinBalance(b => b + effectiveLv * 5)
+                }
+                return effectiveLv
+              })
+              return next
+            })
+            setCoinBalance(b => b + collectCoin)
+            setCollectedChars(n => n + 1)
+            // ── 任务进度：收录1个新角色 ──
+            setTaskProgress(tp => {
+              const collectTask = DAILY_TASKS.find(t => t.id === 'collect1')
+              const updated = { ...tp, collect1: Math.min(collectTask.goal, tp.collect1 + 1) }
+              if (updated.collect1 >= collectTask.goal && tp.collect1 < collectTask.goal) {
+                setTaskCompleteToast(collectTask)
+              }
+              return updated
+            })
+            // ── 收录成功 Toast ──
+            setTaskCompleteToast({ icon: '✦', label: `成功收录「${cardChar.name}」`, xpReward: collectXP, coinReward: collectCoin })
             if (cardChar.isUnlock) {
-              // 解锁流：推进推荐角色 + 隐藏提示
               setRecommendCharIdx(prev => Math.min(prev + 1, FOLLOW_CHARS.length - 1))
               setShowSwipeHint(false)
             }
